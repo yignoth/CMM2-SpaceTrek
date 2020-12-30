@@ -2,7 +2,7 @@
 
 A start to a Space Trek game where you need to explore the quadrant.
 
-![alt text](graphics/spacetrek-splash.jpeg)
+![alt text](graphics/spacetrek-splash.jpg)
 
 This program is not yet finished, but you can go around an shoot the enemy ships -- they don't fire back yet.
 

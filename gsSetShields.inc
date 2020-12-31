@@ -15,11 +15,17 @@ sub _gsSetShields.init()
 local integer be = ship.batt.getValue(0)
 local integer se = ship.shld.getValue(0)
 local integer sm = ship.shld.getMaxValue(0)
+local float hlth = ship.shld.getHealth(0)
 local string s$ = str$(min(sm, be+se))
 
-  _setCmdPrompt("Energy:")
-  _setCmdInfo("Set shield energy.~Max energy: " + s$ + "~~ <ESC> cancel")
-  cmdText$ = ""
+  if hlth > 0 then
+    _setCmdPrompt("Energy:")
+    _setCmdInfo("Set shield energy.~Max energy: " + s$ + "~~ <ESC> cancel")
+    cmdText$ = ""
+  else
+    _printInfo(weaponsOfficer + "Shields have been destroyed")
+    _switchGameState("CommandInput")
+  endif
 end sub
 
 

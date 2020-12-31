@@ -7,7 +7,7 @@
 sub _gsEnterSector.init()
   sector.init()
   mapDisplay = MAP_DISPLAY_SECTOR
-  _switchGameState("CommandInput")
+  _switchGameState("EnemyFire")
 end sub
 
 

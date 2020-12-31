@@ -8,7 +8,6 @@
 ' Variables
 dim integer phasorEnergy, numSecTargets, secTargetIdx, phasorsFiring
 dim integer secTarget(3,3)
-dim integer __pha_destA(3), __pha_num_dest = 0
 
 
 
@@ -16,11 +15,16 @@ dim integer __pha_destA(3), __pha_num_dest = 0
 ' FP: set energy level
 '
 sub _gsFirePhasors.init()
+local float hlth = ship.impl.gethealth(0)
+
   mapDisplay = MAP_DISPLAY_SECTOR
   cmdText$ = ""
 
   if numEnemies = 0 then
     _printInfo(weaponsOfficer + "No enemies detected in sector.")
+    _switchGameState("CommandInput")
+  elseif hlth = 0 then
+    _printInfo(weaponsOfficer + "Phasors have been destroyed.")
     _switchGameState("CommandInput")
   else
     local string pe$ = str$(ship.phas.getMaxEnergy(0))
@@ -148,6 +152,8 @@ sub _gsFirePhasors3.init()
   _setCmdInfo("")
   secTargetIdx = 1
   phasorsFiring = 0
+
+  __firePhasors.sortTargets()
 end sub
 
 sub _gsFirePhasors3.input()
@@ -197,7 +203,6 @@ local string msg, smsg, sys$
 
   _setCmdPrompt("")
   _setCmdInfo("Hit <ENTER> or~    <ESC> to continue")
-  __pha_num_dest = 0
 
   ' reduce our energy from reserves
   ship.batt.setValue(0, ship.batt.getValue(0) - phasorEnergy)
@@ -238,8 +243,8 @@ local string msg, smsg, sys$
         ship.doPhasorDamage(idx, pe, sys$, df%)
         if df% <> 0 then
           _printInfo(msg + " has been destroyed!")
-          __pha_destA(__pha_num_dest) = idx
-          inc __pha_num_dest
+          ' remove destroyed
+          ship.destroyed(idx)
         else
           _printInfo(msg + "'s " + sys$ + " has been hit.")
         endif
@@ -249,14 +254,8 @@ local string msg, smsg, sys$
     endif
   next
 
-  ' remove destroyed
-  for i=0 to __pha_num_dest-1
-    ship.destroyed(__pha_destA(i))
-    inc enemiesKilled
-  next
-
   ' switch states
-  _switchGameState("CommandInput")
+  _switchGameState("EnemyFire")
 end sub
 
 sub _gsFirePhasors4.input()
@@ -269,3 +268,17 @@ sub _gsFirePhasors4.render()
   sector.render()
 end sub
 
+
+'
+' UTILITY
+'
+sub __firePhasors.sortTargets()
+local integer i, j
+  for i=1 to numSecTargets-1
+    for j=i+1 to numSecTargets
+      if secTarget(2,i) < secTarget(2,j) then
+        _swapArrayPlaces2(i,j,secTarget(),3)
+      endif
+    next
+  next
+end sub

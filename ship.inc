@@ -22,7 +22,7 @@ const _SIDX_SHLD=4   ' shield stats
 const _SIDX_PHAS=5   ' phasor stats
 const _SIDX_TORP=6   ' torpedo stats
 const _SIDX_LRS=7    ' long range sensor stats
-const _SIDX_SRS=6    ' short range sensor stats
+const _SIDX_SRS=8    ' short range sensor stats
 const _SIDX_SCAN=9   ' scanner stats (scans stars and enemy ships)
 const _SIDX_LIFE=10  ' life support and crew stats
 const _SIDX_COMP=11  ' computer stats
@@ -52,6 +52,7 @@ const _STAT_DSZ = 3
 ' Ship stats
 dim integer shipStats(_SIDX_DSZ, MAX_SHIPS)
 dim string shipStatsName(_SIDX_DSZ) length 12 = ("XXXPOS", "WarpDrive", "ImpulseDrive", "Batteries", "Shields", "Phasors", "Torpedoes", "LRS", "SRS", "Scanners", "LifeSupport", "Computer", "Hull")
+'dim string shipStatsFunc(_SIDX_DSZ) length 4 = ("pos", "warp", "impl", "batt", "shld", "phas", "torp", "lrs", "srs", "scan", "life", "comp", "hull")
 
 
 '
@@ -68,7 +69,7 @@ sub ship.initStats(sidx%)
 ' health = CUR_HP / MAX_HP
 '
 ' (these stats do not use VALUE)
-' warp: dist=level/10*health, energy-prod=level/4*health
+' warp: dist=level/20*health, energy-prod=level/4*health
 ' impl: dist=level/10*health
 ' lrs : quadrant scan distance = level/10*health
 ' srs : sector scan distance = SECTOR_SIZE*level/10*health
@@ -88,10 +89,10 @@ local integer slvl(_SIDX_DSZ)     = (0, 100, 100, 3000, 1000, 1000, 100, 100, 10
 local integer smhp(_SIDX_DSZ)     = (0, 100, 100,  100,  100,  100, 100, 100, 100,  100,  500, 100, 500)
 local integer schp(_SIDX_DSZ)     = (0, 100, 100,  100,  100,  100, 100, 100, 100,  100,  500, 100, 500)
 local integer sval(_SIDX_DSZ)     = (0,   0,   0, 3000,    0,    0,  10,   0,   0,    0, 1000,   0,   0)
-local integer klg_slvl(_SIDX_DSZ) = (0,  10,  50,  500,  300,  300,  20,   0,   0,    0,   50,  25,  25)
+local integer klg_slvl(_SIDX_DSZ) = (0,  10,  50,  500,  300,  300,  30,   0,   0,    0,   50,  25,  25)
 local integer klg_smhp(_SIDX_DSZ) = (0,  25,  25,   25,   50,  100,  50,   0,   0,    0,  150,  25, 125)
 local integer klg_schp(_SIDX_DSZ) = (0,  25,  25,   25,   50,  100,  50,   0,   0,    0,  150,  25, 125)
-local integer klg_sval(_SIDX_DSZ) = (0,   0,   0,  400,  100,    0,   2,   0,   0,    0,   50,   0,   0)
+local integer klg_sval(_SIDX_DSZ) = (0,   0,   0,  400,  100,  300,   1,   0,   0,    0,   50,   0,   0)
 local integer ss(_STAT_DSZ)
 local integer i,j
 
@@ -107,7 +108,7 @@ local integer i,j
       ss(_STAT_CURHP) = klg_schp(i)
       ss(_STAT_VALUE) = klg_sval(i)
     endif
-    _encodeShipStats(ss(), sidx%, i)
+    _encodeShipStats(ss(), i, sidx%)
   next
 end sub
 
@@ -125,10 +126,26 @@ local integer p%(_STAT_DSZ)
   ship.warp.getProd = fix(0.25 * p%(_STAT_LEVEL) * _convStatHealth(p%()))
 end function
 
+function ship.warp.getMaxDist(sidx%) as float
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(_SIDX_WARP, sidx%, st%())
+  local float hlth = _convStatHealth(st%())
+  ship.warp.getMaxDist = (st(_STAT_LEVEL) / 20) * hlth  
+end function
+
+
 ' impulse
 function ship.impl.getHealth(sidx%) as float
   ship.impl.getHealth = _decodeStatHealth(_SIDX_IMPL, sidx%)
 end function
+
+function ship.impl.getMaxDist(sidx%) as float
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(_SIDX_IMPL, sidx%, st%())
+  local float hlth = _convStatHealth(st%())
+  ship.impl.getMaxDist = (st(_STAT_LEVEL) / 10) * hlth  
+end function
+
 
 ' batteries
 function ship.batt.getHealth(sidx%) as float
@@ -140,6 +157,7 @@ end function
 sub ship.batt.setValue(sidx%, v%)
   _encodeStatValue(_SIDX_BATT, sidx%, v%)
 end sub
+
 
 ' shields
 function ship.shld.getHealth(sidx%) as float
@@ -161,10 +179,26 @@ end function
 function ship.phas.getHealth(sidx%) as float
   ship.phas.getHealth = _decodeStatHealth(_SIDX_PHAS, sidx%)
 end function
+
 function ship.phas.getMaxEnergy(sidx%) as integer
 local integer p%(_STAT_DSZ)
   _decodeShipStats(_SIDX_PHAS, sidx%,p%())
   ship.phas.getMaxEnergy = cint(p%(_STAT_LEVEL) * _convStatHealth(p%()))
+end function
+
+function ship.phas.getValue(sidx%) as integer
+  ship.phas.getValue = _decodeStatValue(_SIDX_PHAS, sidx%)
+end function
+
+function ship.phas.adjustForDist(pe, s1, s2) as integer
+local integer x1,y1, x2,y2, dx,dy
+local float d
+  ship.pos.getSec(s1, x1, y1)
+  ship.pos.getSec(s2, x2, y2)
+  dx = x1 - x2
+  dy = y1 - y2
+  d = sqr(dx*dx + dy*dy)
+  ship.phas.adjustForDist = cint(2*pe / d)
 end function
 
 ' torpedoes
@@ -260,7 +294,8 @@ end sub
 
 sub ship.doTorpedoDamage(sidx%, tidx%, sys$, df%)
 local integer i, ri, si, dmg, tdmg, dcnt=0, dest=0
-local integer st%(_STAT_DSZ), sysIdx(_SIDX_DSZ), sysCnt=0
+local integer sysIdx(_SIDX_DSZ), sysCnt=0, hlthCnt=0
+local integer st%(_STAT_DSZ)
 
   ' get torpedo damage amount
   tdmg = ship.torp.getLevel(sidx%) * 10
@@ -270,41 +305,46 @@ local integer st%(_STAT_DSZ), sysIdx(_SIDX_DSZ), sysCnt=0
   for i=1 to _SIDX_DSZ
     _decodeShipStats(i, tidx%, st%())
     if st%(_STAT_LEVEL) > 0 then
-      sysIdx(sysCnt) = i
+      if st%(_STAT_CURHP) > 0 then
+        inc hlthCnt
+        sysIdx(sysCnt) = i
+      else
+        sysIdx(sysCnt) = 0
+      endif
       inc sysCnt
     endif
   next
 
+  sys$ = ""
+
   ' torpedo damages random systems until all damage is used up
   do while tdmg > 0
+    ' get system to damage
     ri = fix(rnd()*sysCnt)
     si = sysIdx(ri)
-    if (si < 0) then
-      si = -si
-    else
+
+    if si > 0 then
       if dcnt > 0 then sys$ = sys$ + ", "
       sys$ = sys$ + shipStatsName(si)
       inc dcnt
+      sysIdx(ri) = -si
+    else
+      si = -si
     endif
 
-    _decodeShipStats(si, tidx%, st%())
+    ' roll damage
     dmg = min(tdmg, _rollD(20,10))
     inc tdmg, -dmg
 
-    if st%(_STAT_CURHP) > 0 then
-      inc st%(_STAT_CURHP), -dmg
-
-      if st%(_STAT_CURHP) <= 0 then
-        inc dest
-        st%(_STAT_CURHP) = 0
-      endif
-
-      _encodeShipStats(st%(), tidx%, si) 
+    ' apply damage to system
+    if si > 0 then
+      if _modifyStatCurHp(si, tidx%, -dmg) = 0 then inc dest
+      sysIdx(ri) = 0
     endif
   loop
 
   ' check if ship was destroyed
-  if dest = sysCnt then df% = 1
+  if dest = hlthCnt then df% = 1
 end sub
 
 
@@ -317,12 +357,14 @@ local integer sysIdx(_SIDX_DSZ), sysCnt=0, dcnt=0
   for i=1 to _SIDX_DSZ
     _decodeShipStats(i, idx%, st%())
     if st%(_STAT_LEVEL) > 0 then
-      if _convStatHealth(st%()) > 0 then
+      if st%(_STAT_CURHP) > 0 then
         sysIdx(sysCnt) = i
         inc sysCnt
       endif
     endif
   next
+
+  sys$ = ""
 
   ' loop over random system and damage it
   do while petot > 0 and sysCnt > 0
@@ -333,17 +375,13 @@ local integer sysIdx(_SIDX_DSZ), sysCnt=0, dcnt=0
     sys$ = sys$ + shipStatsName(si)
     inc dcnt
 
-    _decodeShipStats(si, idx%, st%())
-    dmg = min(petot, st%(_STAT_CURHP))
+    dmg = min(petot, _decodeStatCurHp(si, idx%))
     inc petot, -dmg
-    inc st%(_STAT_CURHP), -dmg
 
-    if st%(_STAT_CURHP) = 0 then
+    if _modifyStatCurHp(si, idx%, -dmg) = 0 then
       inc sysCnt, -1
       sysIdx(ri) = sysIdx(sysCnt)
     endif
-
-    _encodeShipStats(st%(), idx%, si)
   loop
   
   ' check if ship was destroyed
@@ -370,6 +408,7 @@ local integer qx, qy, sx, sy, n
   ship.swapRecords(numEnemies, totalEnemies)
   inc numEnemies, -1
   inc totalEnemies, -1
+  inc enemiesKilled
 end sub
 
 
@@ -433,6 +472,29 @@ sub _encodeStatValue(stat%, sidx%, v%)
   shipStats(stat%, sidx%) = sval + v% * &h1000000000000
 end sub
 
+function _decodeStatCurHp(stat%, sidx%) as integer
+  _decodeStatCurHp = (shipStats(stat%, sidx%) \ &h100000000) and &hffff
+end function
+sub _encodeStatCurHp(stat%, sidx%, v%)
+  local integer sval% = shipStats(stat%, sidx%) and &hffff0000ffffffff
+  shipStats(stat%, sidx%) = sval% + v% * &h100000000
+end sub
+function _modifyStatCurHp(stat%, sidx%, v%) as integer
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(stat%, sidx%, st%())
+
+  local integer chp = st%(_STAT_CURHP)
+  st%(_STAT_CURHP) = max(0, min(st%(_STAT_MAXHP), chp + v%))
+  local integer nhp = st%(_STAT_CURHP)
+
+  if nhp < chp then
+    local float vfrac = 1.0 * nhp / chp
+    st%(_STAT_VALUE) = fix(st%(_STAT_VALUE) * vfrac)
+  endif
+  _encodeShipStats(st%(), stat%, sidx%)
+  _modifyStatCurHp = nhp
+end function
+
 
 sub _decodeShipStats(stat%, sidx%, p%())
   local integer pval% = shipStats(stat%, sidx%)
@@ -442,7 +504,7 @@ sub _decodeShipStats(stat%, sidx%, p%())
   p%(_STAT_VALUE) = (pval% \ &h1000000000000) and &hffff
 end sub
 
-sub _encodeShipStats(p%(), sidx%, stat%)
+sub _encodeShipStats(p%(), stat%, sidx%)
   local integer pval% = ((p%(_STAT_VALUE)*&h10000 + p%(_STAT_CURHP))*&h10000 + p%(_STAT_MAXHP))*&h10000 + p%(_STAT_LEVEL)
   shipStats(stat%, sidx%) = pval%
 end sub

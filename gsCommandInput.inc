@@ -3,7 +3,7 @@
 '
 
 ' Constants
-const COMMANDS_DSZ = 4
+const COMMANDS_DSZ = 5
 
 
 ' init
@@ -18,12 +18,13 @@ sub _gsCommandInput.init()
   m$ = m$ + "~ <SHL> set shields"
   m$ = m$ + "~ <TOR> fire torpedos"
   m$ = m$ + "~ <WAR> warp move"
+  m$ = m$ + "~ <XXX> resign"
   m$ = m$ + "~~~ <F1> show quad/sect"
   _setCmdInfo(m$)
 end sub
 
-dim string cmdStr(COMMANDS_DSZ) length 3 = ("IMP", "SHL", "PHA", "TOR", "WAR")
-dim string cmdStrState(COMMANDS_DSZ) length 11 = ("ImpulseMove", "SetShields", "FirePhasors", "FireTorpedo", "WarpMove")
+dim string cmdStr(COMMANDS_DSZ) length 3 = ("IMP", "SHL", "PHA", "TOR", "WAR", "XXX")
+dim string cmdStrState(COMMANDS_DSZ) length 11 = ("ImpulseMove", "SetShields", "FirePhasors", "FireTorpedo", "WarpMove", "Resign")
 ' "Resupply",
 ' "ScanShip",
 ' "Survey",

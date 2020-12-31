@@ -3,13 +3,10 @@
 '
 
 ' TODO:
-' * Implement klingon firing phasors
-' * Implement klingon firing torpedoes (use armor/hull for torpedo dmg reduction, but not for phasors)
 ' * Implement time passing as ship moves in warp to new sector
-' * Implement slef repairs as time goes by
+' * Implement self repairs as time goes by
 ' * Implement resupply from supply container
 ' * Put in sound effects
-' * Create title screen
 ' * Put in help / commands screen
 ' * Put in background music
 ' * Implement surveying stars
@@ -17,6 +14,7 @@
 ' * Sector impulse movement should stop if we hit a star, enemy, supply, etc.??? or not???
 ' * Gray out sector squares that are to far away to move into and prevent cursor from going there.
 ' * Gray out quadrant squares that are to far away to move into and prevent cursor from going there.
+' * Should stars block phasors and torpedoes??????
 
 mode 13,8 'mode 13,8
 option base 0
@@ -62,6 +60,9 @@ const DT = 30, MAX_FRAMETIME = 250
 #include "gsMoveShip.inc"
 #include "gsFirePhasors.inc"
 #include "gsFireTorpedo.inc"
+#include "gsEnemyFire.inc"
+#include "gsDestroyed.inc"
+#include "gsResign.inc"
 
 
 

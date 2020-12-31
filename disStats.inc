@@ -62,7 +62,7 @@ end sub
 
 ' helpers
 sub _disStats.phealth(h!, y%)
-local integer v = cint(h!*100)
+local integer v = cint(h!*100.0 + 0.499999)
 local integer fclr
 
     if ship.syshealth.isGreen(v) <> 0 then

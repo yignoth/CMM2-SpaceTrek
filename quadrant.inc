@@ -60,11 +60,11 @@ end sub
 
 ' initialize quadrant variables
 sub quadrant.init()
-local integer i, j, qx, qy, v, n, nitems
+local integer i, j, qx, qy, v, n, sx, sy, nitems
 
   totalEnemies = min(_rollD(6,5), MAX_SHIPS)
   nitems = min(1 + int(rnd()*totalEnemies/3), MAX_ITEMS)
-  totalStars = min(_rollD(12,8), MAX_STARS)
+  totalStars = min(_rollD(6,8), MAX_STARS)
 
   ' clear quad map
   for i=0 to QUAD_WIDTH-1
@@ -79,7 +79,9 @@ local integer i, j, qx, qy, v, n, nitems
   next
 
   ' initialize ship's position in quadrant
-  ship.pos.setQuad(0, fix(rnd()*QUAD_WIDTH), fix(rnd()*QUAD_HEIGHT))
+  sx = fix(rnd()*QUAD_WIDTH)
+  sy = fix(rnd()*QUAD_HEIGHT)
+  ship.pos.setQuad(0, sx,sy)
   ship.pos.setHead(0, 0)
 
   ' initialize enemy positions
@@ -87,11 +89,13 @@ local integer i, j, qx, qy, v, n, nitems
     do
       qx = fix(rnd()*QUAD_WIDTH)
       qy = fix(rnd()*QUAD_HEIGHT)
-      n = quadrant.getNumEnemies(qx,qy)
-      if (n < 3) then
-        ship.pos.setQuad(i, qx, qy)
-        quadrant.setNumEnemies(qx,qy,n+1)
-        exit do
+      if qx <> sx or qy <> sy then    ' no ships in initial landing spot
+        n = quadrant.getNumEnemies(qx,qy)
+        if n < 3 then
+          ship.pos.setQuad(i, qx, qy)
+          quadrant.setNumEnemies(qx,qy,n+1)
+          exit do
+        endif
       endif
     loop
   next i
@@ -102,7 +106,7 @@ local integer i, j, qx, qy, v, n, nitems
       qx = fix(rnd()*QUAD_WIDTH)
       qy = fix(rnd()*QUAD_HEIGHT)
       n = quadrant.getNumItems(qx,qy)
-      if n = 0 then
+      if n = 0 then                   ' only 1 per sector
         item.addSupply(qx, qy)
         quadrant.setNumItems(qx,qy,1)
         exit do
@@ -116,7 +120,7 @@ local integer i, j, qx, qy, v, n, nitems
       qx = fix(rnd()*QUAD_WIDTH)
       qy = fix(rnd()*QUAD_HEIGHT)
       n = quadrant.getNumStars(qx,qy)
-      if (n < 3) then
+      if n = 0 then                     ' only 1 per sector
         star.pos.setQuad(i, qx, qy)
         quadrant.setNumStars(qx,qy,n+1)
         exit do

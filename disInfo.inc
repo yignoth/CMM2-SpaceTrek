@@ -9,9 +9,9 @@ const __DI_INFO_DSZ = 9
 ' Variables
 dim string infoStr$(__DI_INFO_DSZ) length 42 ' info string
 dim integer infoPos = 0
-dim string weaponsOfficer = "Weapons Station: "
-dim string helmOfficer = "Helm Control: "
-dim string EnginesOfficer = "Engineering Station: "
+dim string weaponsOfficer = "Weapons: "
+dim string helmOfficer = "Helm: "
+dim string enginesOfficer = "Engineering: "
 
 
 '

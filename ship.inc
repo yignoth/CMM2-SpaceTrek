@@ -81,14 +81,14 @@ sub ship.initStats(sidx%)
 ' (these stats use VALUE)
 ' batt: max=level*health, value = current available energy to use
 ' shld: max=level*health,  value = current shields energy
-' torp: max=fix(level/10*health), value = current number of torpedoes, dmg = level*10
-' life: max_crew = level*0.05 + level*0.95*sin(pi/2*health), value = current crew number
+' torp: max=fix(level/10), value = current number of torpedoes, dmg = level*10, #tgt=3*hlth%
+' life: max_crew = level*0.10 + level*0.90*sin(pi/2*health), value = current crew number
 '
 '                                   pos wrp  imp   bat  shld   pha  trp  lrs  srs   sca   crw  cmp  hull
 local integer slvl(_SIDX_DSZ)     = (0, 100, 100, 3000, 1000, 1000, 100, 100, 100, 1000, 1000, 100, 100)
 local integer smhp(_SIDX_DSZ)     = (0, 100, 100,  100,  100,  100, 100, 100, 100,  100,  500, 100, 500)
 local integer schp(_SIDX_DSZ)     = (0, 100, 100,  100,  100,  100, 100, 100, 100,  100,  500, 100, 500)
-local integer sval(_SIDX_DSZ)     = (0,   0,   0, 3000,    0,    0,  10,   0,   0,    0, 1000,   0,   0)
+local integer sval(_SIDX_DSZ)     = (0,   0,   0, 3000, 9999,    0,  10,   0,   0,    0, 1000,   0,   0)
 local integer klg_slvl(_SIDX_DSZ) = (0,  10,  50,  500,  300,  300,  30,   0,   0,    0,   50,  25,  25)
 local integer klg_smhp(_SIDX_DSZ) = (0,  25,  25,   25,   50,  100,  50,   0,   0,    0,  150,  25, 125)
 local integer klg_schp(_SIDX_DSZ) = (0,  25,  25,   25,   50,  100,  50,   0,   0,    0,  150,  25, 125)
@@ -130,7 +130,7 @@ function ship.warp.getMaxDist(sidx%) as float
 local integer st%(_STAT_DSZ)
   _decodeShipStats(_SIDX_WARP, sidx%, st%())
   local float hlth = _convStatHealth(st%())
-  ship.warp.getMaxDist = (st(_STAT_LEVEL) / 20) * hlth  
+  ship.warp.getMaxDist = (st%(_STAT_LEVEL) / 20) * hlth  
 end function
 
 
@@ -143,13 +143,18 @@ function ship.impl.getMaxDist(sidx%) as float
 local integer st%(_STAT_DSZ)
   _decodeShipStats(_SIDX_IMPL, sidx%, st%())
   local float hlth = _convStatHealth(st%())
-  ship.impl.getMaxDist = (st(_STAT_LEVEL) / 10) * hlth  
+  ship.impl.getMaxDist = (st%(_STAT_LEVEL) / 10) * hlth  
 end function
 
 
 ' batteries
 function ship.batt.getHealth(sidx%) as float
   ship.batt.getHealth = _decodeStatHealth(_SIDX_BATT, sidx%)
+end function
+function ship.batt.getMaxValue(sidx%) as integer
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(_SIDX_BATT, sidx%, st%())
+  ship.batt.getMaxValue = st%(_STAT_VALUE)*_convStatHealth(st%())
 end function
 function ship.batt.getValue(sidx%) as integer
   ship.batt.getValue = _decodeStatValue(_SIDX_BATT, sidx%)
@@ -208,21 +213,44 @@ end function
 function ship.torp.getHealth(sidx%) as float
   ship.torp.getHealth = _decodeStatHealth(_SIDX_TORP, sidx%)
 end function
+function ship.torp.getMaxValue(sidx%) as integer
+  ship.torp.getMaxValue = _decodeStatLevel(_SIDX_TORP, sidx%) / 10
+end function
 function ship.torp.getValue(sidx%) as integer
   ship.torp.getValue = _decodeStatValue(_SIDX_TORP, sidx%)
 end function
 sub ship.torp.setValue(sidx%, v%)
   _encodeStatValue(_SIDX_TORP, sidx%, v%)
 end sub
+function ship.torp.getMaxTargets(sidx%) as integer
+  ship.torp.getMaxTargets = cint(3*_decodeStatHealth(_SIDX_TORP, sidx%))
+end function
 
 ' long range sensors
 function ship.lrs.getHealth(sidx%) as float
   ship.lrs.getHealth = _decodeStatHealth(_SIDX_LRS, sidx%)
 end function
+
+function ship.lrs.getMaxDist(sidx%) as float
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(_SIDX_LRS, sidx%, st%())
+  local float hlth = _convStatHealth(st%())
+  ship.lrs.getMaxDist = (st%(_STAT_LEVEL)/50) * hlth
+end function
+
 ' short range sensors
 function ship.srs.getHealth(sidx%) as float
   ship.srs.getHealth = _decodeStatHealth(_SIDX_SRS, sidx%)
 end function
+
+function ship.srs.getMaxDist(sidx%) as float
+local integer st%(_STAT_DSZ)
+  _decodeShipStats(_SIDX_SRS, sidx%, st%())
+  local float hlth = _convStatHealth(st%())
+  local float md = sqr(SECTOR_WIDTH*SECTOR_WIDTH + SECTOR_HEIGHT*SECTOR_HEIGHT)
+  ship.srs.getMaxDist = md * hlth
+end function
+
 ' scanners
 function ship.scan.getHealth(sidx%) as float
   ship.scan.getHealth = _decodeStatHealth(_SIDX_SCAN, sidx%)
@@ -333,7 +361,7 @@ local integer st%(_STAT_DSZ)
     endif
 
     ' roll damage
-    dmg = min(tdmg, _rollD(20,10))
+    dmg = min(tdmg, _rollD(10,5))
     inc tdmg, -dmg
 
     ' apply damage to system
@@ -446,11 +474,7 @@ end sub
 function _decodeStatHealth(stat%, sidx%) as float
 local integer p%(_STAT_DSZ)
   _decodeShipStats(stat%, sidx%, p%())
-  if p%(_STAT_MAXHP) > 0 then
-    _decodeStatHealth = 1.0 * p%(_STAT_CURHP) / p%(_STAT_MAXHP)
-  else
-    _decodeStatHealth = 0
-  endif
+  _decodeStatHealth = _convStatHealth(p%())
 end function
 function _convStatHealth(p%()) as float
   if p%(_STAT_MAXHP) > 0 then
@@ -479,6 +503,9 @@ sub _encodeStatCurHp(stat%, sidx%, v%)
   local integer sval% = shipStats(stat%, sidx%) and &hffff0000ffffffff
   shipStats(stat%, sidx%) = sval% + v% * &h100000000
 end sub
+
+' modifies the current hp and reduces the current value as well
+' this is because damage was done
 function _modifyStatCurHp(stat%, sidx%, v%) as integer
 local integer st%(_STAT_DSZ)
   _decodeShipStats(stat%, sidx%, st%())
@@ -489,7 +516,11 @@ local integer st%(_STAT_DSZ)
 
   if nhp < chp then
     local float vfrac = 1.0 * nhp / chp
-    st%(_STAT_VALUE) = fix(st%(_STAT_VALUE) * vfrac)
+    if stat% <> _SIDX_LIFE then
+      st%(_STAT_VALUE) = fix(st%(_STAT_VALUE) * vfrac)
+    else
+      st%(_STAT_VALUE) = max(st%(_STAT_LEVEL)/10, st%(_STAT_VALUE)*(1-vfrac/2))
+    endif
   endif
   _encodeShipStats(st%(), stat%, sidx%)
   _modifyStatCurHp = nhp

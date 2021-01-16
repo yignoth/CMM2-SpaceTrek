@@ -75,6 +75,10 @@ local integer px, py, flag = 0
 
     call shipMoveSetPosFunc, 0, px, py
 
+    if shipMoveGetPosFunc = "ship.pos.getSec" then
+      sector.updateStatus()
+    endif
+
     if flag = 2 then
       _switchGameState(shipNextState)
     endif

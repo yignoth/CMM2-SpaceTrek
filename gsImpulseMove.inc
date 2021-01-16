@@ -10,7 +10,7 @@ dim integer xSecCell, ySecCell, secMoveCells(SECTOR_WIDTH-1, SECTOR_HEIGHT-1)
 sub _gsImpulseMove.init()
 local float hlth = ship.impl.getHealth(0)
 local float dmax, d
-local integer sx, sy, x, y
+local integer i, sx, sy, x, y
 
   mapDisplay = MAP_DISPLAY_SECTOR
   
@@ -22,7 +22,7 @@ local integer sx, sy, x, y
   _setCmdInfo("Set SECTOR course~~ <ARROW> move cursor~ <ENTER> engage~~ <ESC>   cancel")
   ship.pos.getSec(0, xSecCell, ySecCell)
 
-  ' find out where we can move
+  ' find out where we can move limited by impulse engines
   dmax = ship.impl.getMaxDist(0)
   ship.pos.getSec(0, sx, sy)
   for x=0 to SECTOR_WIDTH-1
@@ -30,6 +30,16 @@ local integer sx, sy, x, y
       d = sqr((x-sx)*(x-sx) + (y-sy)*(y-sy))
       secMoveCells(x,y) = (d <= dmax)
     next
+  next
+
+  ' remove occupied areas (supply pod or destroyed ship is okay)
+  for i=1 to numEnemies
+    ship.pos.getSec(i, x, y)
+    secMoveCells(x,y) = 0
+  next
+  for i=0 to numStars-1
+    star.pos.getSec(i, x, y)
+    secMoveCells(x,y) = 0
   next
 end sub
 

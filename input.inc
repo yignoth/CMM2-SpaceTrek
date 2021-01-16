@@ -14,6 +14,7 @@ const KEY_A = asc("A")
 const KEY_Z = asc("Z")
 const KEY_F1=145
 const KEY_F2=146
+const KEY_F3=147
 const KEY_UP=128
 const KEY_DOWN=129
 const KEY_LEFT=130

@@ -8,6 +8,23 @@ const CLR_QUAD_SHIP_BG = rgb(32,0,0)
 
 ' Variables
 dim integer quadMap(QUAD_WIDTH-1, QUAD_HEIGHT-1)
+dim integer __quadVisible(QUAD_WIDTH-1, QUAD_HEIGHT-1)
+
+
+' update quadrant status
+sub quadrant.updateStatus()
+local integer x, y
+local float hlth = ship.comp.getHealth(0)
+  for x = 0 to QUAD_WIDTH-1
+    for y = 0 to QUAD_HEIGHT-1
+      __quadVisible(x,y) = (rnd() <= hlth)
+    next
+  next
+end sub
+
+function quadrant.isVisible(x%, y%)
+  quadrant.isVisible = __quadVisible(x%,y%) <> 0
+end function 
 
 
 ' render the quadrant
@@ -35,19 +52,23 @@ local integer i, x, y, px, py, h%, spx, spy
     px = HUD_MAP_X0 + x*QUAD_CELL_SX
     for y = 0 to QUAD_HEIGHT-1
       py = HUD_MAP_Y0 + y*QUAD_CELL_SY
-      if quadrant.hasVisited(x,y) <> 0 then
-        ' draw enemies
-        for i=1 to quadrant.getNumEnemies(x,y)
-          blit 24,0,px+1+(i-1)*10,py+2,8,8,ASSET_PAGE+1
-        next
-        ' draw items
-        if quadrant.getNumItems(x,y) > 0 then blit 8,0,px+2,py+12,8,8,ASSET_PAGE+1
-        ' draw stars
-        for i=1 to quadrant.getNumStars(x,y)
-          blit 0,0,px+1+(i-1)*10,py+22,8,8,ASSET_PAGE+1
-        next
+      if __quadVisible(x,y) <> 0 then
+        if quadrant.hasVisited(x,y) <> 0 then
+          ' draw enemies
+          for i=1 to quadrant.getNumEnemies(x,y)
+            blit 24,0,px+1+(i-1)*10,py+2,8,8,ASSET_PAGE+1
+          next
+          ' draw items
+          if quadrant.getNumItems(x,y) > 0 then blit 8,0,px+2,py+12,8,8,ASSET_PAGE+1
+          ' draw stars
+          for i=1 to quadrant.getNumStars(x,y)
+            blit 0,0,px+1+(i-1)*10,py+22,8,8,ASSET_PAGE+1
+          next
+        else
+          box px+1, py+1, QUAD_CELL_SX-1, QUAD_CELL_SY-1,, CLR_DK_GRAY,CLR_DK_GRAY
+        endif
       else
-        box px+1, py+1, QUAD_CELL_SX-1, QUAD_CELL_SY-1,, CLR_DK_GRAY,CLR_DK_GRAY
+        blit 64,int(rnd()*2)*QUAD_CELL_SX,px+1,py+1, QUAD_CELL_SX-1,QUAD_CELL_SY-1,ASSET_PAGE,&b100
       endif
     next
   next
@@ -65,6 +86,9 @@ local integer i, j, qx, qy, v, n, sx, sy, nitems
   totalEnemies = min(_rollD(6,5), MAX_SHIPS)
   nitems = min(1 + int(rnd()*totalEnemies/3), MAX_ITEMS)
   totalStars = min(_rollD(6,8), MAX_STARS)
+' DEBUG
+inc nitems, 20  ' DEBUG ONLY
+' DEBUG
 
   ' clear quad map
   for i=0 to QUAD_WIDTH-1

@@ -22,6 +22,7 @@ const HUD_CMD2_Y0 = HUD_CMD_Y0 + mm.info(fontheight) + 2
 const HUD_HEALTH_X0 = HUD_STATS_X0
 const HUD_HEALTH_Y0 = mm.vres - 5 - mm.info(fontheight)*12
 
+const CLR_BLACK = rgb(0,0,0)
 const CLR_WHITE = rgb(255,255,255)
 const CLR_YELLOW = rgb(255,255,0)
 const CLR_GREEN = rgb(0,255,0)
@@ -46,6 +47,13 @@ dim integer mapDisplay            ' map display mode
 ' render HUD
 sub _renderHUD()
   blit 0,0, 0,0, mm.hres,mm.vres, HUD_PAGE
+end sub
+
+' updates the HUD status when the ship's state/health has changed
+sub hud.updateStatus()
+  _disStats.updateStatus()
+  sector.updateStatus()
+  quadrant.updateStatus()
 end sub
 
 

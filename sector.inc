@@ -8,11 +8,32 @@ const __MAX_BG_STARS=100     ' max number of background stars blinking in sector
 ' Global vars
 dim integer __bgStarsNum
 dim integer __bgStars(2,__MAX_BG_STARS)
+dim integer __sectorVisible(SECTOR_WIDTH-1, SECTOR_HEIGHT-1)
 
 
 '
 ' Functions
 '
+
+' Performs status updates for sector info when ship status changes
+sub sector.updateStatus()
+local integer x,y,sx,sy
+local float d, dmax = ship.srs.getMaxDist(0)
+
+  ' calculate the visibility in the sector for SRS
+  ship.pos.getSec(0, sx,sy)
+  for x=0 to SECTOR_WIDTH-1
+    for y=0 to SECTOR_HEIGHT-1
+      d = sqr((x-sx)*(x-sx) + (y-sy)*(y-sy))
+      __sectorVisible(x,y) = (d > dmax)
+    next
+  next
+'__debug$=str$(dmax)
+end sub
+
+function sector.isVisible(x%,y%) as integer
+  sector.isVisible = __sectorVisible(x%,y%) = 0
+end function
 
 ' update sector background stars
 sub sector.updateBackground(gtime, dt)
@@ -29,7 +50,7 @@ end sub
 
 ' render sector
 sub sector.render()
-local integer i, h, px, py, sx, sy, c, m
+local integer i, h, px, py, sx, sy, c, m, ysi
 static integer simg = 0
 
   for i=0 to __bgStarsNum-1
@@ -38,6 +59,27 @@ static integer simg = 0
     c = (__bgStars(1,i) \ &h100000000) and &hffffffff
     m = __bgStars(1,i) AND &hffffffff
     pixel HUD_MAP_X0+px, HUD_MAP_Y0+py, c AND m
+  next
+
+  ' draw stars
+  simg = (simg + 1) mod 80
+  ysi = int(simg/20)*SEC_CELL_SY
+  for i=0 to numStars-1
+    star.pos.getSec(i, sx, sy)
+    if __sectorVisible(sx,sy) = 0 then
+      _calcSectorPixelCoord(sx, sy, px, py)
+      blit 0,ysi,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100
+    endif
+  next
+
+  ' draw items
+  for i=0 to numItems-1
+    c = item.getType(i)
+    item.pos.getSec(i, sx, sy)
+    if __sectorVisible(sx,sy) = 0 then
+      _calcSectorPixelCoord(sx, sy, px, py)
+      blit 16,c*16,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100 
+    endif
   next
 
   ' draw ship
@@ -49,25 +91,23 @@ static integer simg = 0
   ' draw enemies
   for i=1 to numEnemies
     ship.pos.getSec(i, sx, sy)
-    _calcSectorPixelCoord(sx, sy, px, py)
-    blit 48,0,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100
+    if __sectorVisible(sx,sy) = 0 then
+      _calcSectorPixelCoord(sx, sy, px, py)
+      blit 48,0,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100
+    endif
   next
 
-  ' draw items
-  for i=0 to numItems-1
-    c = item.getType(i)
-    item.pos.getSec(i, sx, sy)
-    _calcSectorPixelCoord(sx, sy, px, py)
-    blit 16,c*16,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100 
+  ' blackout non-sensor range
+  local x,y
+  for x=0 to SECTOR_WIDTH-1
+    px = HUD_MAP_X0 + x*SEC_CELL_SX
+    for y=0 to SECTOR_HEIGHT-1
+      if __sectorVisible(x,y) <> 0 then
+        py = HUD_MAP_Y0 + y*SEC_CELL_SY
+        blit 64,int(rnd()*4)*SEC_CELL_SY,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100
+      endif
+    next
   next
-
-  ' draw stars
-  for i=0 to numStars-1
-    star.pos.getSec(i, sx, sy)
-    _calcSectorPixelCoord(sx, sy, px, py)
-    blit 0,int(simg/20)*SEC_CELL_SY,px,py,SEC_CELL_SX,SEC_CELL_SY,ASSET_PAGE,&b100
-  next
-  simg = (simg + 1) mod 80
 end sub
 
 
@@ -76,7 +116,7 @@ sub sector.init()
 local integer i, x, y, sqx, sqy, qx, qy, sx, sy, p
 local integer smap(SECTOR_WIDTH-1, SECTOR_HEIGHT-1)
 local integer sclrs(3) = (rgb(255,255,128), rgb(255,128,128), rgb(128,255,128), rgb(128,128,255))
-local integer hlth
+local float qdist, qdx, qdy
 
   ' place our ship
   ship.pos.getQuad(0, sqx, sqy)
@@ -84,17 +124,15 @@ local integer hlth
   ship.pos.setSec(0, sx, sy)
 
   ' update quardrant visited (or scanned using LRS if not broken)
-  hlth = ship.syshealth.isGreen(ship.lrs.getHealth(0)*100)
-  for x=sqx-1 to sqx+1
-    if x >= 0 and x < QUAD_WIDTH then
-      for y=sqy-1 to sqy+1
-        if y >= 0 and y < QUAD_HEIGHT then
-          if (x = sqx and y = sqy) or (hlth <> 0) then
-              quadrant.setVisited(x,y)
-          endif
-        endif
-      next
-    endif
+  qdist = ship.lrs.getMaxDist(0)
+  for x=max(0,sqx-qdist) to min(QUAD_WIDTH-1,sqx+qdist)
+    qdx = x - sqx
+    for y=max(0,sqy-qdist) to min(QUAD_HEIGHT-1,sqy+qdist)
+      qdy = y - sqy
+      if sqr(qdx*qdx+qdy*qdy) <= qdist then
+        quadrant.setVisited(x,y)
+      endif
+    next
   next
 
   ' find and place all enemies in our quadrant

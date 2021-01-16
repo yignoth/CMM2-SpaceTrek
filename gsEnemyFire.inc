@@ -22,6 +22,8 @@ local integer i, pe, nt, px,py, fmode
     _switchGameState("CommandInput")
   endif
 
+  hud.updateStatus()
+
   __efIdx = 0
   __efDestroyed = 0
   phasorsFiring = 0
@@ -54,7 +56,6 @@ local integer i, pe, nt, px,py, fmode
         ship.torp.setValue(i, ship.torp.getValue(i)-1)
       elseif fmode = __EF_MODE_PHAS then
         __efPE(i) = pe
-        ' TODO: drain energy
       endif
     else
       secTarget(2,i) = 0
@@ -94,10 +95,14 @@ local string s$
         endif
 
         ship.shld.setValue(0, sh)
-        ship.doPhasorDamage(0, pe, s$, df%)        
+        if pe > 0 then
+          ship.doPhasorDamage(0, pe, s$, df%)
+          hud.updateStatus()
+        endif
       elseif fmode = __EF_MODE_TORP then
         _printInfo(enginesOfficer + "Ship hit by enemy torpedo")
         ship.doTorpedoDamage(__efIdx, 0, s$, df%)
+        hud.updateStatus()
       endif
 
       if df% <> 0 then __efDestroyed = 1

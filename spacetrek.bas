@@ -3,6 +3,7 @@
 '
 
 ' TODO:
+' * Should not be able to target enemies that cannot be seen with phas or torps (sector.isVisible())
 ' * Implement time passing as ship moves in warp to new sector
 ' * Implement self repairs as time goes by
 ' * Implement resupply from supply container
@@ -12,8 +13,6 @@
 ' * Implement surveying stars
 ' * Sector impulse movement should be smooth
 ' * Sector impulse movement should stop if we hit a star, enemy, supply, etc.??? or not???
-' * Gray out sector squares that are to far away to move into and prevent cursor from going there.
-' * Gray out quadrant squares that are to far away to move into and prevent cursor from going there.
 ' * Should stars block phasors and torpedoes??????
 
 mode 13,8 'mode 13,8
@@ -63,6 +62,8 @@ const DT = 30, MAX_FRAMETIME = 250
 #include "gsEnemyFire.inc"
 #include "gsDestroyed.inc"
 #include "gsResign.inc"
+#include "gsResupply.inc"
+#include "gsRepairs.inc"
 
 
 

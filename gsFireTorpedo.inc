@@ -16,11 +16,17 @@ dim string __tgtSys$(3)
 '
 sub _gsFireTorpedo.init()
 local float hlth = ship.torp.getHealth(0)
+local integer i, px, py, ecnt = 0
 
   mapDisplay = MAP_DISPLAY_SECTOR
   cmdText$ = ""
 
-  if numEnemies = 0 then
+  for i=1 to numEnemies
+    ship.pos.getSec(i,px,py)
+    if sector.isVisible(px,py) <> 0 then ecnt = ecnt + 1
+  next
+
+  if ecnt = 0 then
     _printInfo(weaponsOfficer + "No enemies detected in sector.")
     _switchGameState("CommandInput")
   elseif hlth = 0 then
@@ -30,7 +36,6 @@ local float hlth = ship.torp.getHealth(0)
     _printInfo(weaponsOfficer + "No torpedoes in armory.")
     _switchGameState("CommandInput")
   else
-    local integer i, px, py
     _setCmdInfo("Select enemy target.~~ <ARROW> move cursor~ <SPACE> target enemy~ <ENTER> fire torpedo~~ <ESC> cancel")
     secTargetIdx = 1
     numSecTargets = 0
@@ -41,6 +46,11 @@ local float hlth = ship.torp.getHealth(0)
       secTarget(1,i) = HUD_MAP_Y0 + py*SEC_CELL_SY
       secTarget(2,i) = -1
     next
+
+    if numEnemies = 1 then
+      secTarget(2,1) = 1
+      numSecTargets = 1
+    endif
   endif
 end sub
 
@@ -73,6 +83,8 @@ sub _gsFireTorpedo.input()
       inc numSecTargets, -1
     elseif ship.torp.getValue(0) < numSecTargets+1 then
       _printInfo(weaponsOfficer + "Not enough torpedoes.")
+    elseif numSecTargets >= ship.torp.getMaxTargets(0) then
+      _printInfo(weaponsOfficer + "Not enough undamaged torpedo tubes.")
     else
       secTarget(2,secTargetIdx) = secTargetIdx
       inc numSecTargets

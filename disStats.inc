@@ -7,6 +7,7 @@ const __CLR_HEALTH_GREEN = rgb(0,128,0)
 const __CLR_HEALTH_YELLOW = rgb(128,128,0)
 const __CLR_HEALTH_RED1 = rgb(128,0,0)
 const __CLR_HEALTH_RED2 = rgb(255,0,0)
+const __CLR_HEALTH_DESTROYED = CLR_BLACK
 
 const __DNUM_STATS = 4
 const __DNUM_HEALTH = 12
@@ -17,6 +18,7 @@ const __DNUM_HEALTH = 12
 
 dim string __debug$ = ""
 dim integer __clrRedTimer = 0
+dim integer __dsAltPos, __dsAltText(256)
 
 
 '
@@ -25,14 +27,18 @@ dim integer __clrRedTimer = 0
 
 ' draw stats
 sub _renderStats()
+local integer x0=HUD_STATS_X0+mm.info(fontwidth)*15+4
 local integer y0=HUD_STATS_Y0+1
 
   __clrRedTimer = (__clrRedTimer + 1) mod 100
+  __dsAltPos = 0
 
-  text HUD_STATS_X0+mm.info(fontwidth)*13+4,y0,str$(starDate/10.0, 6, 1),,,,CLR_WHITE,CLR_STAT_BG
+  text x0,y0,str$(starDate/10.0, 4, 1),,,,CLR_WHITE,CLR_STAT_BG
   inc y0, mm.info(fontheight)
-  _disStats.print(str$(starsSurveyed, 4), CLR_WHITE, y0)
-  _disStats.print(str$(enemiesKilled, 4), CLR_WHITE, y0)
+  inc x0, mm.info(fontwidth)
+  text x0,y0,str$(starsSurveyed,2)+"/"+str$(totalStars,2),,,,CLR_WHITE,CLR_STAT_BG
+  inc y0, mm.info(fontheight)
+  text x0,y0,str$(enemiesKilled,2)+"/"+str$(totalEnemies+enemiesKilled,2),,,,CLR_WHITE,CLR_STAT_BG
 
   ' values
   y0 = HUD_STATS2_Y0 + 1
@@ -61,6 +67,16 @@ local integer y0=HUD_STATS_Y0+1
 end sub
 
 ' helpers
+sub _disStats.updateStatus()
+local integer i
+local float hlth = ship.comp.getHealth(0)
+
+  __dsAltPos = 0
+  for i=0 to 256
+    __dsAltText(i) = (rnd() >= hlth)
+  next
+end sub
+
 sub _disStats.phealth(h!, y%)
 local integer v = cint(h!*100.0 + 0.499999)
 local integer fclr
@@ -69,10 +85,14 @@ local integer fclr
       fclr = __CLR_HEALTH_GREEN
     elseif ship.syshealth.isYellow(v) <> 0 then
       fclr = __CLR_HEALTH_YELLOW
-    elseif __clrRedTimer > 50 then
-      fclr = __CLR_HEALTH_RED1
+    elseif v > 0 then
+      if __clrRedTimer > 50 then
+        fclr = __CLR_HEALTH_RED1
+      else
+        fclr = __CLR_HEALTH_RED2
+      endif
     else
-      fclr = __CLR_HEALTH_RED2
+      fclr = __CLR_HEALTH_DESTROYED
     endif
 
     _disStats.print(str$(v, 3) + "%", fclr, y%)
@@ -80,7 +100,24 @@ end sub
 
 sub _disStats.print(a$, fclr%, y%)
 static integer x% = HUD_STATS_X0 + mm.info(fontwidth)*17 + 4
-static integer fh% = mm.info(fontheight)  
-  text x%,y%,a$,,,,fclr%,CLR_STAT_BG
-  inc y%, fh%
+static integer fh% = mm.info(fontheight)
+local integer i, v
+local string b$
+
+  b$ = ""
+  for i=1 to len(a$)
+    v = asc(mid$(a$,i,1))
+    if fclr% <> __CLR_HEALTH_DESTROYED then
+      if __dsAltText(__dsAltPos) > 0 then
+        inc v, fix(rnd()*128)
+      endif
+    else
+      v = asc("#")
+    endif
+    b$ = b$ + chr$(v and &h7F)
+    inc __dsAltPos
+  next
+
+  text x%,y%,b$,,,,fclr%,CLR_STAT_BG
+  inc y%, fh%  
 end sub

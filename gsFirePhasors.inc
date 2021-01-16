@@ -15,12 +15,19 @@ dim integer secTarget(3,3)
 ' FP: set energy level
 '
 sub _gsFirePhasors.init()
-local float hlth = ship.impl.gethealth(0)
+local float hlth = ship.phas.gethealth(0)
+local integer i, ex,ey, ecnt = 0
 
   mapDisplay = MAP_DISPLAY_SECTOR
   cmdText$ = ""
 
-  if numEnemies = 0 then
+  ' check if SRS pick up any enemies
+  for i=1 to numEnemies
+    ship.pos.getSec(i, ex,ey)
+    if sector.isVisible(ex,ey) <> 0 then ecnt = ecnt + 1
+  next
+
+  if ecnt = 0 then
     _printInfo(weaponsOfficer + "No enemies detected in sector.")
     _switchGameState("CommandInput")
   elseif hlth = 0 then
@@ -92,6 +99,8 @@ local integer i, px, py, h
     secTarget(2,i) = -1
     secTarget(3,i) = h
   next
+
+  if numEnemies = 1 then secTarget(2,1) = 1
 end sub
 
 sub _gsFirePhasors2.input()

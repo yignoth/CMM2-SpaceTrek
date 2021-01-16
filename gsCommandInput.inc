@@ -3,7 +3,15 @@
 '
 
 ' Constants
-const COMMANDS_DSZ = 5
+const COMMANDS_DSZ = 7
+
+' Variables
+
+dim string cmdStr(COMMANDS_DSZ) length 3 = ("IMP", "PHA", "REP", "SHL", "SUP", "TOR", "WAR", "XXX")
+dim string cmdStrState(COMMANDS_DSZ) length 11 = ("ImpulseMove", "FirePhasors", "Repairs", "SetShields", "Resupply", "FireTorpedo", "WarpMove", "Resign")
+' REP "Repair",
+' SUR "Survey",
+
 
 
 ' init
@@ -15,19 +23,18 @@ sub _gsCommandInput.init()
   local string m$ = "awaiting orders...~"
   m$ = m$ + "~ <IMP> impulse move"
   m$ = m$ + "~ <PHA> fire phasors"
+  m$ = m$ + "~ <REP> make repairs"
   m$ = m$ + "~ <SHL> set shields"
+  m$ = m$ + "~ <SUP> use resupply pod"
   m$ = m$ + "~ <TOR> fire torpedos"
   m$ = m$ + "~ <WAR> warp move"
   m$ = m$ + "~ <XXX> resign"
   m$ = m$ + "~~~ <F1> show quad/sect"
   _setCmdInfo(m$)
+
+  hud.updateStatus()
 end sub
 
-dim string cmdStr(COMMANDS_DSZ) length 3 = ("IMP", "SHL", "PHA", "TOR", "WAR", "XXX")
-dim string cmdStrState(COMMANDS_DSZ) length 11 = ("ImpulseMove", "SetShields", "FirePhasors", "FireTorpedo", "WarpMove", "Resign")
-' "Resupply",
-' "ScanShip",
-' "Survey",
 
 ' input
 sub _gsCommandInput.input()
